@@ -26,14 +26,14 @@ const verifyJWT = (req, res, next) => {
   console.log('hitting verify JWT');
   console.log(req.headers.authorization);
   const authorization = req.headers.authorization;
-  if(!authorization){
-    return res.status(401).send({ error: true, message: 'unauthorized access'})
+  if (!authorization) {
+    return res.status(401).send({ error: true, message: 'unauthorized access' })
   }
   const token = authorization.split(' ')[1];
   console.log('token inside verify JWT: ', token);
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) =>{
-    if(error){
-      return res.status(401).send({error: true, message: 'unauthorized access'})
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(401).send({ error: true, message: 'unauthorized access' })
     }
     req.decoded = decoded;
     next();
@@ -55,13 +55,30 @@ async function run() {
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: '1h'
       });
-      res.send({token});
+      res.send({ token });
     })
 
 
     // Services Routes
     app.get('/services', async (req, res) => {
-      const cursor = serviceCollection.find();
+      const sort = req.query.sort;
+      const search = req.query.search;
+
+      // const query = {};
+      // const query = { price: { $lt: 100 } };
+      // const query = { price: { $lte: 100 } };
+      // const query = { price: { $gt: 50, $lt: 150 } };
+      // const query = { price: { $gte: 100 } };
+      // const query = { price: { $gte: 100 } };
+
+      const query = {title: {$regex: search, $options: 'i'}}
+
+      const options = {
+        sort: {
+          "price": sort === 'asc' ? 1 : -1
+        }
+      }
+      const cursor = serviceCollection.find(query, options);
       const result = await cursor.toArray();
       res.send(result);
     })
@@ -84,8 +101,8 @@ async function run() {
       const decoded = req.decoded;
       console.log('came back after verify', decoded);
 
-      if(decoded.email !== req.query.email){
-        return res.status(403).send({ error: 1, message: "forbidden access"})
+      if (decoded.email !== req.query.email) {
+        return res.status(403).send({ error: 1, message: "forbidden access" })
       }
 
       let query = {};
